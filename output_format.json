@@ -1,0 +1,136 @@
+{
+  "status": "success",
+  "data": {
+    "basic_details": [
+      {
+        "0": "Name",
+        "1": "FirstName",
+        "2": "MiddleName",
+        "3": "LastName",
+        "4": "Nationality",
+        "5": "Gender",
+        "6": "Doa",
+        "7": "Dob",
+        "8": "Address1",
+        "9": "Address2",
+        "10": "Address3",
+        "11": "Address4",
+        "12": "City",
+        "13": "State",
+        "14": "Country",
+        "15": "ZipCode",
+        "16": "EmailId",
+        "17": "MobileNo",
+        "18": "AlternateNo",
+        "19": "Rank"
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": null,
+        "12": null,
+        "13": null,
+        "14": null,
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": null,
+        "19": null
+      }
+    ],
+    "experience_table": [
+      {
+        "0": "VesselName",
+        "1": "VesselType",
+        "2": "Position",
+        "3": "VesselSubType",
+        "4": "Employer",
+        "5": "Flag",
+        "6": "IMO",
+        "7": "FromDt",
+        "8": "ToDt",
+        "9": "others"
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null
+      }
+    ],
+    "certificate_table": [
+      {
+        "0": "CertificateNo",
+        "1": "CertificateName",
+        "2": "PlaceOfIssue",
+        "3": "IssuedBy",
+        "4": "DateOfIssue",
+        "5": "DateOfExpiry",
+        "6": "Grade",
+        "7": "Others",
+        "8": "CountryOfIssue"
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null
+      },
+      {
+        "0": null,
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null
+      }
+    ]
+  },
+  "utc_time_stamp": "14/05/2024, 12:05:10"
+}
