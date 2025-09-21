@@ -1002,8 +1002,8 @@ def start_scheduler_guarded():
             scheduler.add_job(
                 run_both_tasks,
                 CronTrigger(
-                    hour=17,             # Current hour
-                    minute=52,           # Current minute
+                    hour=14,             # Current hour
+                    minute=20,           # Current minute
                     timezone=SCHED_TZ    # Correct timezone (Asia/Kolkata)
                 ),
                 id="run_both_tasks_now",   # Change the ID to reflect immediate execution
