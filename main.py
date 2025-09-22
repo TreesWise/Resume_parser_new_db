@@ -581,6 +581,7 @@ def get_db_engine():
 class TempDocument(Base):
     __tablename__ = 'temp_table'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    document_name = Column(String, nullable=False)
     unidentified_doc_name = Column(String, nullable=False)
     mapped_doc_name = Column(String, nullable=False)
     status = Column(String, default='pending')
@@ -589,6 +590,7 @@ class TempDocument(Base):
 class MasterDocument(Base):
     __tablename__ = 'Master_unidentified_doc_Table'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    document_name = Column(String, nullable=False)
     unidentified_doc_name = Column(String, nullable=False)
     mapped_doc_name = Column(String, nullable=False)
     uploaded_date = Column(DateTime, default=datetime.now)
@@ -625,7 +627,7 @@ def fetch_mapped_documents():
     engine = get_db_engine()
     with engine.begin() as conn:
         result = conn.execute(text("""
-            SELECT unidentified_doc_name, mapped_doc_name 
+            SELECT document_name, unidentified_doc_name, mapped_doc_name 
             FROM Master_unidentified_doc_Table
             WHERE status = 'pending' OR status = 'exported'
         """))
@@ -673,7 +675,7 @@ def update_mapping_dict():
         # Step 1: Download the current dict_file.py from Blob storage
         download_dict_file_from_blob(AZURE_CONTAINER_NAME, 'dict_file.py', 'dict_file_local.py')
         
-        # Step 2: Load the downloaded dict file locally
+         # Step 2: Load the downloaded dict file locally
         with open('dict_file_local.py', 'r', encoding='utf-8') as f:
             content = f.read()
             if content.strip():  # Ensure the file isn't empty
@@ -690,7 +692,7 @@ def update_mapping_dict():
         if unidentified_name not in mapping_dict:
             mapping_dict[unidentified_name] = mapped_name
 
-    # Step 4: Write the updated mapping_dict to a temporary file
+        # Step 4: Write the updated mapping_dict to a temporary file
     with open('dict_file_updated.py', 'w', encoding='utf-8') as f:
         f.write("mapping_dict = {\n")
         for key, value in mapping_dict.items():
@@ -698,7 +700,8 @@ def update_mapping_dict():
             value = escape_value(value)
             f.write(f'    "{key}": "{value}",\n')
         f.write("}\n")
-
+        
+        
     # Step 5: Upload the updated dict_file.py back to Blob storage
     upload_dict_file_to_blob('dict_file_updated.py', AZURE_CONTAINER_NAME, 'dict_file.py')
 
@@ -748,6 +751,7 @@ def upload_dict_file_to_blob(file_path, container_name, blob_name):
 # API Input Model
 # ------------------------------------------------------------------------------
 class DocumentMapping(BaseModel):
+    document_name:str
     unidentified_doc_name: str
     mapped_doc_name: str
 
@@ -763,16 +767,13 @@ def insert_temp_documents(
             return {"error": "Invalid format. Expected a dictionary inside a list."}
 
         df = pd.DataFrame([{
+            "document_name": (item.get("document_name") or "").strip().lower(),
             "unidentified_doc_name": (item.get("unidentified_doc_name") or "").strip().lower(),
             "mapped_doc_name": (item.get("mapped_doc_name") or "").strip().lower()
         } for item in mappings])
 
         df['status'] = 'pending'
         df['CreatedDate'] = datetime.utcnow()   # use UTC
-        
-        
-        
-        print("df------------------------------------------------------------", df)
 
         engine = get_db_engine()
         pandas_to_sql_fast(df, 'temp_table', engine)
@@ -781,7 +782,6 @@ def insert_temp_documents(
     except Exception as e:
         logger.error("Insertion failed: %s", e, exc_info=True)
         return {"error": f"Insertion failed: {str(e)}"}
-
 
 # ------------------------------------------------------------------------------
 # Scheduled Task: Export to Excel and upload to Blob
@@ -900,9 +900,11 @@ def insert_data_from_blob(blob_name: str):
                 
                 existing = conn.execute(text("""
                     SELECT 1 FROM Master_unidentified_doc_Table 
-                    WHERE unidentified_doc_name = :unidentified_doc_name 
+                    WHERE document_name = :document_name 
+                    AND unidentified_doc_name = :unidentified_doc_name 
                     AND mapped_doc_name = :mapped_doc_name
                 """), {
+                    "document_name": row['document_name'],
                     "unidentified_doc_name": row['unidentified_doc_name'],
                     "mapped_doc_name": row['mapped_doc_name']
                 }).fetchone()
@@ -910,9 +912,10 @@ def insert_data_from_blob(blob_name: str):
                 if not existing:
                     conn.execute(text("""
                         INSERT INTO Master_unidentified_doc_Table
-                        (unidentified_doc_name, mapped_doc_name, uploaded_date, status)
-                        VALUES (:unidentified_doc_name, :mapped_doc_name, :uploaded_date, :status)
+                        (document_name, unidentified_doc_name, mapped_doc_name, uploaded_date, status)
+                        VALUES (:document_name, :unidentified_doc_name, :mapped_doc_name, :uploaded_date, :status)
                     """), {
+                        "document_name": row['document_name'],
                         "unidentified_doc_name": row['unidentified_doc_name'],
                         "mapped_doc_name": row['mapped_doc_name'],
                         "uploaded_date": row['CreatedDate'],
@@ -959,6 +962,7 @@ def view_temp_documents(api_key: str = Depends(verify_api_key)):
 
         data = [{
             "id": record.id,
+            "document_name": record.document_name,
             "unidentified_doc_name": record.unidentified_doc_name, 
             "mapped_doc_name": record.mapped_doc_name,
             "status": record.status, 
@@ -1003,7 +1007,7 @@ def start_scheduler_guarded():
                 run_both_tasks,
                 CronTrigger(
                     hour=14,             # Current hour
-                    minute=20,           # Current minute
+                    minute=39,           # Current minute
                     timezone=SCHED_TZ    # Correct timezone (Asia/Kolkata)
                 ),
                 id="run_both_tasks_now",   # Change the ID to reflect immediate execution
