@@ -579,7 +579,7 @@ def get_db_engine():
 # ORM models
 # ------------------------------------------------------------------------------
 class TempDocument(Base):
-    __tablename__ = 'temp_table'
+    __tablename__ = 'local_temp_table'
     id = Column(Integer, primary_key=True, autoincrement=True)
     document_name = Column(String, nullable=False)
     unidentified_doc_name = Column(String, nullable=False)
@@ -588,7 +588,7 @@ class TempDocument(Base):
     CreatedDate = Column(DateTime, default=datetime.now)
 
 class MasterDocument(Base):
-    __tablename__ = 'Master_unidentified_doc_Table'
+    __tablename__ = 'local_Master_unidentified_doc_Table'
     id = Column(Integer, primary_key=True, autoincrement=True)
     document_name = Column(String, nullable=False)
     unidentified_doc_name = Column(String, nullable=False)
@@ -628,7 +628,7 @@ def fetch_mapped_documents():
     with engine.begin() as conn:
         result = conn.execute(text("""
             SELECT document_name, unidentified_doc_name, mapped_doc_name 
-            FROM Master_unidentified_doc_Table
+            FROM local_Master_unidentified_doc_Table
             WHERE status = 'pending' OR status = 'exported'
         """))
         return result.fetchall()
@@ -776,7 +776,7 @@ def insert_temp_documents(
         df['CreatedDate'] = datetime.utcnow()   # use UTC
 
         engine = get_db_engine()
-        pandas_to_sql_fast(df, 'temp_table', engine)
+        pandas_to_sql_fast(df, 'local_temp_table', engine)
 
         return {"message": f"{len(df)} document(s) inserted as pending."}
     except Exception as e:
@@ -794,7 +794,7 @@ def export_data_to_excel():
         with engine.begin() as conn:
             
             result = conn.execute(text("""
-                SELECT * FROM temp_table
+                SELECT * FROM local_temp_table
                 WHERE LTRIM(RTRIM(status)) = 'pending'
                 AND CONVERT(date, CreatedDate) < CONVERT(date, GETDATE())
             """))
@@ -829,7 +829,7 @@ def export_data_to_excel():
 
             with engine.begin() as conn2:
                 conn2.execute(text("""
-                    UPDATE temp_table
+                    UPDATE local_temp_table
                     SET status='exported'
                     WHERE LTRIM(RTRIM(status)) = 'pending'
                     AND CONVERT(date, CreatedDate) < CONVERT(date, GETDATE())
@@ -838,11 +838,11 @@ def export_data_to_excel():
 
                 print("[TASK] Updated rows to 'exported'", flush=True)
                 conn2.execute(text("""
-                    DELETE FROM temp_table
+                    DELETE FROM local_temp_table
                     WHERE LTRIM(RTRIM(status)) = 'exported'
                     AND CONVERT(date, CreatedDate) < CONVERT(date, GETDATE())
                 """))
-                # conn2.execute(text("DELETE FROM temp_table WHERE TRIM(status) = 'exported'"))
+                # conn2.execute(text("DELETE FROM local_temp_table WHERE TRIM(status) = 'exported'"))
                 print("[TASK] Deleted exported rows", flush=True)
 
     except Exception as e:
@@ -899,7 +899,7 @@ def insert_data_from_blob(blob_name: str):
 
                 
                 existing = conn.execute(text("""
-                    SELECT 1 FROM Master_unidentified_doc_Table 
+                    SELECT 1 FROM local_Master_unidentified_doc_Table 
                     WHERE document_name = :document_name 
                     AND unidentified_doc_name = :unidentified_doc_name 
                     AND mapped_doc_name = :mapped_doc_name
@@ -911,7 +911,7 @@ def insert_data_from_blob(blob_name: str):
 
                 if not existing:
                     conn.execute(text("""
-                        INSERT INTO Master_unidentified_doc_Table
+                        INSERT INTO local_Master_unidentified_doc_Table
                         (document_name, unidentified_doc_name, mapped_doc_name, uploaded_date, status)
                         VALUES (:document_name, :unidentified_doc_name, :mapped_doc_name, :uploaded_date, :status)
                     """), {
@@ -923,7 +923,7 @@ def insert_data_from_blob(blob_name: str):
                     })
                     inserted += 1
 
-        print(f"[TASK] Inserted {inserted} new rows into Master_unidentified_doc_Table", flush=True)
+        print(f"[TASK] Inserted {inserted} new rows into local_Master_unidentified_doc_Table", flush=True)
     except Exception as e:
         print(f"[TASK] Insertion from blob failed: {e}", flush=True)
     finally:
@@ -958,7 +958,7 @@ def view_temp_documents(api_key: str = Depends(verify_api_key)):
         session = SessionLocal()
 
         result = session.query(TempDocument).all()
-        print(f"[API] Retrieved {len(result)} rows from temp_table", flush=True)
+        print(f"[API] Retrieved {len(result)} rows from local_temp_table", flush=True)
 
         data = [{
             "id": record.id,
@@ -979,8 +979,8 @@ def delete_temp_documents(api_key: str = Depends(verify_api_key)):
     try:
         engine = get_db_engine()
         with engine.begin() as connection:
-            connection.execute(text("DELETE FROM temp_table"))
-        return {"message": "All documents from temp_table have been deleted."}
+            connection.execute(text("DELETE FROM local_temp_table"))
+        return {"message": "All documents from local_temp_table have been deleted."}
     except Exception as e:
         return {"error": f"Deletion failed: {str(e)}"}
 
@@ -1007,7 +1007,7 @@ def start_scheduler_guarded():
                 run_both_tasks,
                 CronTrigger(
                     hour=14,             # Current hour
-                    minute=39,           # Current minute
+                    minute=00,           # Current minute
                     timezone=SCHED_TZ    # Correct timezone (Asia/Kolkata)
                 ),
                 id="run_both_tasks_now",   # Change the ID to reflect immediate execution
