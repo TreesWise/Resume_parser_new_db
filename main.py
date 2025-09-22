@@ -997,7 +997,6 @@ def start_scheduler_guarded():
     if os.getenv("RUN_SCHEDULER", "0") != "1":
         print("[SCHEDULER] Skipped (RUN_SCHEDULER not set)", flush=True)
         return
-
     lock = FileLock(SCHED_LOCK_PATH)
     try:
         
